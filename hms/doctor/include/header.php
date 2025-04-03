@@ -22,7 +22,7 @@
 					
 								<li  style="padding-top:2% ">
 								<h2><strong>
-									<span style="color: #FFFFFF">Welcome, Nurse!</span></strong></h2>
+									<span style="color: #FFFFFF">Welcome!</span></strong></h2>
 							</li>
 						
 						

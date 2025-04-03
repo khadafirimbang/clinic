@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Update Patient Status</title>
+    <title>Queueing Status</title>
     <link rel="stylesheet" href="queue-patient.css">
     <style>
         body {
@@ -100,8 +100,22 @@
     </table>
 
     <script>
+        // Debug mode - set to true to see more console logs
+        const DEBUG = true;
+        
+        // Create a debug log function to conditionally log based on DEBUG flag
+        function debugLog(...args) {
+            if (DEBUG) {
+                console.log(...args);
+            }
+        }
+        
+        // Global variables
         const spokenPatients = new Set(); // Track patients whose statuses have been announced
         let previousPatientStates = {}; // Track previous states to detect changes
+        let announcementInProgress = false; // Flag to track if an announcement is currently in progress
+        
+        // Get DOM elements
         const callSound = document.getElementById('call-sound');
         const voiceSelect = document.getElementById('voice-select');
         const voiceStatus = document.getElementById('voice-status');
@@ -109,6 +123,42 @@
         
         // Store the user's selected voice
         let selectedVoice = null;
+        
+        // Create a new audio context
+        let audioContext;
+        try {
+            audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            debugLog('Audio context created successfully');
+        } catch (e) {
+            console.error('Web Audio API is not supported in this browser', e);
+        }
+        
+        // Ensure audio can play (handles autoplay restrictions)
+        function setupAudio() {
+            // Function to initialize audio context - needs to be called from a user interaction
+            if (audioContext && audioContext.state === 'suspended') {
+                audioContext.resume().then(() => {
+                    debugLog('AudioContext resumed successfully');
+                }).catch(error => {
+                    console.error('Failed to resume AudioContext:', error);
+                });
+            }
+            
+            // Also try to load the audio file
+            callSound.load();
+        }
+        
+        // Set up event to initialize audio on first user interaction
+        document.addEventListener('click', function initAudio() {
+            setupAudio();
+            document.removeEventListener('click', initAudio);
+            debugLog('Audio initialized on user interaction');
+        }, { once: true });
+        
+        // Pre-load the call sound to ensure it's cached
+        callSound.addEventListener('canplaythrough', () => {
+            debugLog('Call sound loaded and ready to play');
+        }, { once: true });
         
         // List of common female voice identifiers across different systems
         const femaleVoiceIdentifiers = [
@@ -207,9 +257,9 @@
             return null;
         }
 
-        function speak(text) {
+        function speak(text, callback) {
             if (speechSynthesis.speaking) {
-                console.log("Speech already in progress, canceling...");
+                debugLog("Speech already in progress, canceling...");
                 speechSynthesis.cancel();
             }
 
@@ -218,48 +268,118 @@
             
             if (voice) {
                 utterance.voice = voice;
-                console.log(`Using voice: ${voice.name}`);
+                debugLog(`Using voice: ${voice.name}`);
             } else {
                 console.warn('No voice found, using default voice.');
             }
 
-            // Make voice sound more feminine if not using a known female voice
-            if (voice && !isFemaleVoice(voice)) {
-                utterance.pitch = 1.5;  // Higher pitch
-                utterance.rate = 0.9;   // Slightly slower rate
-                console.log("Adjusting non-female voice to sound more feminine");
-            } else {
-                // Even for female voices, slightly adjust
-                utterance.pitch = 1.1;  // Slightly higher pitch
+            // Adjust pitch and rate
+            utterance.pitch = 1.1;  // Slightly higher pitch
+            utterance.rate = 1;     // Normal rate
+
+            utterance.onstart = () => debugLog(`Speaking: ${text}`);
+            utterance.onerror = (event) => console.error('Speech synthesis error:', event);
+            
+            if (callback) {
+                utterance.onend = callback; // Call the callback when the speech ends
             }
             
-            utterance.onstart = () => console.log(`Speaking: ${text}`);
-            utterance.onerror = (event) => console.error('Speech synthesis error:', event);
             speechSynthesis.speak(utterance);
         }
 
-        function announcePatient(patient) {
-            const textToSpeak = `${patient.name}, ${patient.service}`;
-            console.log(`Announcing patient: ${textToSpeak}`);
+        // Play the call sound with a callback for when it's done
+        function playCallSound(onComplete) {
+            debugLog('Attempting to play call sound...');
             
-            // Play sound effect first, then speak when it finishes
-            callSound.onended = function() {
-                // Speak the text three times with slight delay between each
-                speak(textToSpeak);
-                setTimeout(() => speak(textToSpeak), 3000);
-                setTimeout(() => speak(textToSpeak), 6000);
+            // Make sure audio context is running
+            if (audioContext && audioContext.state === 'suspended') {
+                audioContext.resume();
+            }
+            
+            // Create a new separate audio element to avoid conflicts
+            const tempSound = new Audio(callSound.src);
+            tempSound.volume = 1.0;  // Ensure volume is up
+            
+            // Set up event handlers
+            tempSound.onplay = () => debugLog('Call sound is playing');
+            tempSound.onended = () => {
+                debugLog('Call sound finished playing');
+                if (onComplete) onComplete();
+            };
+            tempSound.onerror = (e) => {
+                console.error('Error playing sound:', e);
+                // Still call the callback if there's an error
+                if (onComplete) onComplete();
             };
             
-            // Start playing the sound
-            callSound.currentTime = 0; // Reset to beginning
-            callSound.play()
-                .catch(error => {
-                    console.error('Error playing sound:', error);
-                    // If sound fails, still announce the patient
-                    speak(textToSpeak);
-                    setTimeout(() => speak(textToSpeak), 3000);
-                    setTimeout(() => speak(textToSpeak), 6000);
-                });
+            // Try to play the sound with both the Promise API and event handlers
+            try {
+                const playPromise = tempSound.play();
+                
+                // Modern browsers return a promise from play()
+                if (playPromise !== undefined) {
+                    playPromise.catch(error => {
+                        console.error('Error playing sound (promise):', error);
+                        
+                        // If the promise fails (e.g., autoplay restrictions), try a different approach:
+                        // 1. Use a user interaction to play the sound
+                        document.addEventListener('click', function tryPlayOnClick() {
+                            document.removeEventListener('click', tryPlayOnClick);
+                            tempSound.play().catch(e => {
+                                console.error('Still failed to play after click:', e);
+                                if (onComplete) onComplete();
+                            });
+                        }, { once: true });
+                        
+                        // 2. But also continue with speech after a timeout in case user doesn't click
+                        setTimeout(() => {
+                            if (onComplete) onComplete();
+                        }, 1000);
+                    });
+                }
+            } catch (e) {
+                console.error('Exception trying to play sound:', e);
+                // If play() throws an error, still call the callback
+                if (onComplete) onComplete();
+            }
+        }
+
+        function announcePatient(patient) {
+            // Prevent multiple simultaneous announcements
+            if (announcementInProgress) {
+                debugLog('Announcement already in progress, not starting a new one');
+                return;
+            }
+            
+            announcementInProgress = true;
+            
+            const textToSpeak = `Patient ${patient.name} Queue Number ${patient.queue_number}, please proceed to ${patient.service}`;
+            debugLog(`Announcing patient: ${textToSpeak}`);
+            
+            // First play the call sound, then speak
+            playCallSound(() => {
+                // After sound finishes (or fails), make the announcement
+                let count = 0;
+                
+                const speakThreeTimes = () => {
+                    if (count < 3) {
+                        speak(textToSpeak, () => {
+                            count++;
+                            if (count < 3) {
+                                setTimeout(speakThreeTimes, 1000); // Delay before next speech
+                            } else {
+                                // Reset the flag when all announcements are complete
+                                announcementInProgress = false;
+                            }
+                        });
+                    } else {
+                        // Reset the flag when all announcements are complete
+                        announcementInProgress = false;
+                    }
+                };
+                
+                speakThreeTimes();
+            });
             
             // Mark this patient as announced
             spokenPatients.add(patient.id);
@@ -275,7 +395,7 @@
                     queueTableBody.innerHTML = '';
                     completedTableBody.innerHTML = '';
 
-                    console.log("Fetched patient data:", data);
+                    debugLog("Fetched patient data:", data);
 
                     // Process queue list
                     data.queueList.forEach(patient => {
@@ -290,16 +410,28 @@
                         queueTableBody.appendChild(row);
 
                         // Check if this patient's status has changed to "Consulting"
-                        const previousStatus = previousPatientStates[patient.id]?.status;
-                        if (patient.status === 'Consulting' && previousStatus !== 'Consulting') {
-                            announcePatient(patient);
+                        const previousState = previousPatientStates[patient.id];
+                        const isNewConsulting = patient.status === 'Consulting' && 
+                                               (!previousState || previousState.status !== 'Consulting');
+                                               
+                        if (isNewConsulting) {
+                            debugLog(`STATUS CHANGE DETECTED: Patient ${patient.name} is now Consulting`);
+                            
+                            // Only announce if we're not already in the middle of an announcement
+                            if (!announcementInProgress) {
+                                announcePatient(patient);
+                            } else {
+                                debugLog('Announcement in progress, queueing this patient for later');
+                                // Could implement a queue system here if needed
+                            }
                         }
                         
                         // Update previous state
                         previousPatientStates[patient.id] = { 
                             status: patient.status,
                             name: patient.name,
-                            service: patient.service
+                            service: patient.service,
+                            queue_number: patient.queue_number
                         };
                     });
 
@@ -319,7 +451,8 @@
                         previousPatientStates[patient.id] = { 
                             status: patient.status,
                             name: patient.name,
-                            service: patient.service
+                            service: patient.service,
+                            queue_number: patient.queue_number
                         };
                     });
                 })
@@ -336,7 +469,7 @@
                 selectedVoice = voices.find(voice => voice.name === selectedName);
                 
                 if (selectedVoice) {
-                    console.log(`Voice changed to: ${selectedVoice.name}`);
+                    debugLog(`Voice changed to: ${selectedVoice.name}`);
                     // Save selection to localStorage
                     localStorage.setItem('selectedVoiceName', selectedName);
                 }
@@ -346,13 +479,19 @@
             testVoiceBtn.addEventListener('click', function() {
                 const testText = "This is a test of the selected voice. Is this voice female enough?";
                 speak(testText);
+                
+                // Also test call sound
+                debugLog('Testing call sound...');
+                playCallSound(() => {
+                    debugLog('Call sound test complete');
+                });
             });
             
             // Try to load previously selected voice
             const savedVoiceName = localStorage.getItem('selectedVoiceName');
             if (savedVoiceName) {
                 // We'll set this when voices are available
-                console.log(`Attempting to restore saved voice: ${savedVoiceName}`);
+                debugLog(`Attempting to restore saved voice: ${savedVoiceName}`);
             }
         }
 
@@ -370,7 +509,7 @@
                     if (savedVoice) {
                         voiceSelect.value = savedVoiceName;
                         selectedVoice = savedVoice;
-                        console.log(`Restored saved voice: ${savedVoiceName}`);
+                        debugLog(`Restored saved voice: ${savedVoiceName}`);
                     }
                 }
             }
@@ -387,7 +526,7 @@
                     if (savedVoice) {
                         voiceSelect.value = savedVoiceName;
                         selectedVoice = savedVoice;
-                        console.log(`Restored saved voice: ${savedVoiceName}`);
+                        debugLog(`Restored saved voice: ${savedVoiceName}`);
                     }
                 }
             };
@@ -403,6 +542,9 @@
 
         // Speak again button functionality
         document.getElementById('speak-again').addEventListener('click', function() {
+            // This will also initialize audio if it hasn't been already
+            setupAudio();
+            
             const queueRows = document.querySelectorAll('#queue-list tbody tr');
             let consultingPatientFound = false;
             
@@ -410,34 +552,33 @@
                 const status = row.cells[3].innerText;
                 if (status === 'Consulting') {
                     consultingPatientFound = true;
-                    const name = row.cells[1].innerText;
-                    const service = row.cells[2].innerText;
-                    const textToSpeak = `${name}, ${service}`;
-                    
-                    // Play sound effect first
-                    callSound.onended = function() {
-                        // Speak the text three times with slight delay
-                        speak(textToSpeak);
-                        setTimeout(() => speak(textToSpeak), 3000);
-                        setTimeout(() => speak(textToSpeak), 6000);
+                    const queueNumber = row.cells[0].innerText; // Get Queue Number
+                    const name = row.cells[1].innerText; // Get Name
+                    const service = row.cells[2].innerText; // Get Service
+
+                    // Create a patient object for the announcePatient function
+                    const patient = {
+                        queue_number: queueNumber,
+                        name: name, 
+                        service: service
                     };
                     
-                    callSound.currentTime = 0; // Reset to beginning
-                    callSound.play()
-                        .catch(error => {
-                            console.error('Error playing sound:', error);
-                            // If sound fails, still announce the patient
-                            speak(textToSpeak);
-                            setTimeout(() => speak(textToSpeak), 3000);
-                            setTimeout(() => speak(textToSpeak), 6000);
-                        });
+                    // Use the same announce function for consistency
+                    announcePatient(patient);
+                    
+                    // Only announce the first consulting patient found
+                    return;
                 }
             });
             
             if (!consultingPatientFound) {
-                console.log("No patients with 'Consulting' status found");
+                debugLog("No patients with 'Consulting' status found");
+                alert("No patients currently being consulted.");
             }
         });
+        
+        // Add console message to confirm script loaded
+        console.log("Queue system script loaded and initialized");
     </script>
 
 </body>

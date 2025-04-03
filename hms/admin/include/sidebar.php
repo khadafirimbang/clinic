@@ -16,11 +16,23 @@
 							</li>
 							<li>
 								<a href="javascript:void(0)">
+									<div class="item-content">
+										<div class="item-media">
+										</div>
+										<div class="item-inner"><strong><em><center><span style="color: #FFFFFF">
+											MANAGE ACCOUNTS
+										</em></strong></div>
+									</div>
+								</a>
+								<ul class="sub-menu">
+									
+									<li>
+								<a href="javascript:void(0)">
                             <div class="item-content">
                               <div class="item-media"> </div>
                               <div class="item-inner">
                                 <span class="title"> <em><strong><center>
-                                <span style="color: #FFFFFF">DOCTORS</span></strong></em></span>
+                                <span style="color: #FFFFFF">Doctors</span></strong></em></span>
                               </div>
                             </div>
                           </a>
@@ -49,14 +61,14 @@
 									<div class="item-content">
 										<div class="item-media">
 										</div>
-										<div class="item-inner"><em><strong><center><span style="color: #FFFFFF">USERS</strong></em></div>
+										<div class="item-inner"><em><strong><center><span style="color: #FFFFFF">Patients Account</strong></em></div>
 									</div>
 								</a>
 								<ul class="sub-menu">
 									
 									<li>
 										<a href="manage-users.php">
-											<span class="title"> View Users </span>
+											<span class="title"> View Patients Account </span>
 										</a>
 									</li>
 									
@@ -68,19 +80,22 @@
 										<div class="item-media">
 										</div>
 										<div class="item-inner">
-											<span class="title"> <em><strong><center><span style="color: #FFFFFF">PATIENTS</strong></em></span></div>
+											<span class="title"> <em><strong><center><span style="color: #FFFFFF">Patients (Walk-in)</strong></em></span></div>
 									</div>
 								</a>
 								<ul class="sub-menu">
 									
 									<li>
 										<a href="manage-patient.php">
-											<span class="title"> View Patients </span>
+											<span class="title"> View Patients (Walk-in)</span>
 										</a>
 									</li>
 									
 								</ul>
-								</li>	
+								</li>
+								</ul>
+							</li>
+								
 
 <li>
 								<a href="appointment-history.php">
@@ -101,34 +116,19 @@
 										<div class="item-media">
 										</div>
 										<div class="item-inner">
-											<span class="title"> <strong><em><center><span style="color: #FFFFFF">DIRECT MESSAGES</em></strong></span></div>
+											<span class="title"> <strong><em><center><span style="color: #FFFFFF">
+												SESSION LOGS
+											</em></strong></span></div>
 									</div>
 								</a>
 								<ul class="sub-menu">
 									
 									<li>
-										<a href="unread-queries.php">
-											<span class="title"> Unreads </span>
-										</a>
-									</li>
-
-									<li>
-										<a href="read-query.php">
-											<span class="title"> Read </span>
-										</a>
-									</li>
-									
-								</ul>
-								</li>
-
-
-
-	<li>
 								<a href="doctor-logs.php">
 									<div class="item-content">
 										<div class="item-media">
 										</div>
-										<div class="item-inner"><em><strong><center><span style="color: #FFFFFF">DOCTOR LOGIN SESSIONS</strong></em></div>
+										<div class="item-inner"><em><strong><center><span style="color: #FFFFFF">Doctor</strong></em></div>
 									</div>
 								</a>
 							</li>		
@@ -141,14 +141,21 @@
 										<div class="item-media">
 										</div>
 										<div class="item-inner">
-											<span class="title"> <strong><em><center><span style="color: #FFFFFF">USER LOGIN SESSIONS</em></strong></span>
+											<span class="title"> <strong><em><center><span style="color: #FFFFFF">User</em></strong></span>
 										</div>
 									</div>
 								</a>
 							</li>						
-				<li>
+</li>
+									
+								</ul>
+								</li>
 
-				<li>
+
+
+	
+
+				<!-- <li>
 								<a href="javascript:void(0)">
 									<div class="item-content">
 										<div class="item-media">
@@ -169,12 +176,12 @@
 										</a>
 									</li>
 								</ul>
-							</li>
+							</li> -->
 
 
 
 
-								<li>
+								<!-- <li>
 								<a href="patient-search.php">
 									<div class="item-content">
 										<div class="item-media">
@@ -184,7 +191,7 @@
 										</div>
 									</div>
 								</a>
-							</li>
+							</li> -->
 
 							<li> <a href="../../queuing/admin.php">
 								<div class="item-content">
@@ -196,13 +203,13 @@
 </li>
 
 
-							<li> <a href="chatbot/admin/login.php">
+							<!-- <li> <a href="chatbot/admin/login.php">
 								<div class="item-content">
 								  <div class="item-media"> </div>
 								  <div class="item-inner">
 								    <span class="title"> <em><strong><center><span style="color: #FFFFFF">CHATBOT</strong></em></span>
 						          </div>
-						    </div> </li>
+						    </div> </li> -->
 							
 
 						</ul>

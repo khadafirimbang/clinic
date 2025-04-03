@@ -63,7 +63,7 @@
 									
 								</ul>
 								</li>
-<li>
+<!-- <li>
 								        <em><a href="search.php">
 									    <div class="item-content">
 									      <div class="item-media"> </div>
@@ -71,7 +71,7 @@
 									       <span style="color: #FFFFFF"> <strong><em>FIND PATIENTS</em></strong>
 									      </center></div>
 									      </div>
-								        </a></em></li>
+								        </a></em></li> -->
 							<li>
 								<a href="https://queuemanagement.lgu2.com/queuing/queue-patient.php">
 									<div class="item-content">
